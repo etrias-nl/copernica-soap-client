@@ -1,0 +1,23 @@
+{
+    "name": "onemustcode/copernica-soap-client",
+    "description": "Copernica soap client.",
+    "keywords": ["copernica", "soap", "client"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Jeffrey Buitenhuis",
+            "email": "jeffrey@onemustcode.nl"
+        }
+    ],
+    "require": {
+        "php": ">=5.6.4"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "OneMustCode\\CopernicaSoapClient\\": "src/"
+        }
+    }
+}
