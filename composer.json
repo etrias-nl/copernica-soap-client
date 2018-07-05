@@ -17,7 +17,7 @@
     },
     "autoload": {
         "psr-4": {
-            "OneMustCode\\CopernicaSoapClient\\": "src/"
+            "Etrias\\CopernicaSoapClient\\": "src/"
         }
     }
 }
