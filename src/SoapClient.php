@@ -494,7 +494,7 @@ class SoapClient extends \SoapClient
     private function encodeObject($object)
     {
         // result object
-        $result = new stdClass();
+        $result = new \stdClass();
 
         // loop through the object vars
         foreach (get_object_vars($object) as $key => $value)
@@ -544,7 +544,7 @@ class SoapClient extends \SoapClient
     private function decodeObject($object)
     {
         // result object
-        $result = new stdClass();
+        $result = new \stdClass();
 
         // loop through the object vars
         foreach (get_object_vars($object) as $key => $value)
