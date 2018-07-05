@@ -1,5 +1,5 @@
 {
-    "name": "onemustcode/copernica-soap-client",
+    "name": "etrias-nl/copernica-soap-client",
     "description": "Copernica soap client.",
     "keywords": ["copernica", "soap", "client"],
     "license": "MIT",
