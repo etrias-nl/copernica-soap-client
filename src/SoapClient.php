@@ -1,6 +1,6 @@
 <?php
 
-namespace OneMustCode\CopernicaSoapClient;
+namespace Etrias\CopernicaSoapClient;
 
 class SoapClient extends \SoapClient
 {
