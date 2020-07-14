@@ -4,6 +4,8 @@ namespace Etrias\CopernicaSoapClient;
 
 class SoapClient extends \SoapClient
 {
+    const PARAM_ACCESS_TOKEN = 'access_token';
+
     /**
      *  The charset of the supplied parameters, and the returned data
      *  @var string Charset
@@ -14,40 +16,24 @@ class SoapClient extends \SoapClient
      *  The login name
      *  @var string
      */
-    protected $login = false;
-
-    /**
-     *  The password used for login
-     *  @var string
-     */
-    protected $password = false;
-
-    /**
-     *  The account name
-     *  @var  string
-     */
-    protected $account = false;
+    protected $accessToken;
 
     /**
      *  The WSDL url
      *  @var string
      */
-    protected $url = false;
+    protected $url;
 
     /**
      *  Overridden constructor
-     *  @param  string  Email address of soap api user
-     *  @param  string  Password
-     *  @param  string  Account name (if not provided, the first account will be used)
+     *  @param  string  Access token
      *  @param  string  URL of the application
      *  @param  string  The charset that is used by the user of this class (this class takes care of converting it to utf-8 before it is sent to the api)
      */
-    public function __construct($email, $password, $account = null, $url = 'http://soap.copernica.com/', $charset = 'iso-8859-1')
+    public function __construct($accessToken, $url = 'http://soap.copernica.com/', $charset = 'iso-8859-1')
     {
         // Store the data
-        $this->login = $email;
-        $this->account = $account;
-        $this->password = $password;
+        $this->accessToken = $accessToken;
 
         // store charset
         $this->charset = strtolower($charset);
@@ -89,151 +75,6 @@ class SoapClient extends \SoapClient
 
         // create connection
         parent::__construct($this->url, $params);
-
-        // Handle the session cookie
-        $this->handleCookie();
-    }
-
-    /**
-     *  Helper function to handle the sessions cookie
-     *  @param  bool  Force login?
-     */
-    protected function handleCookie($forceLogin = false)
-    {
-        // Try to set the cookies
-        if(!$forceLogin && file_exists($this->cookieFile()) && ($fileContent = file_get_contents($this->cookieFile())) !== false)
-        {
-            // retrieve all cookie data
-            $cookieData = @explode("\n", $fileContent);
-            if (empty($cookieData)) return;
-
-            // loop through all available cookie data and process them all
-            foreach($cookieData as $cookie)
-            {
-                // if this line has no data, skip
-                if (empty($cookie)) continue;
-
-                // break up cookie string to find name and it's value
-                @list($name, $value) = explode('=', $cookie);
-
-                // set the cookie
-                $this->setCookie($name, $value);
-            }
-
-            // done, leap out
-            return;
-        }
-
-        // try to login
-        $this->login(array(
-            'username'  =>  $this->login,
-            'password'  =>  $this->password,
-            'account'   =>  $this->account,
-        ));
-
-        // get the headers from the request
-        $headers = $this->parseHeaders($this->__getLastResponseHeaders());
-
-        // Get the coockies
-        foreach($headers as $name => $header)
-        {
-            // We're only interested in the cookies
-            if($name != 'Set-Cookie') continue;
-
-            // Loop through the header data elements
-            foreach($header as $cookie)
-            {
-                // split the cookie and the path
-                @list($cookie, $path) = explode(' ', $cookie);
-
-                // Set the umask
-                $old = umask(0077);
-
-                // store the cookie data in our temporary cookie file.
-                // Note: one cookie for each line within this file.
-                file_put_contents($this->cookieFile(), $cookie . "\n", FILE_APPEND);
-
-                // Restore the umask
-                umask($old);
-            }
-        }
-    }
-
-    /**
-     *  Helper function to construct the name of the cookie file
-     *  @return string
-     */
-    protected function cookieFile()
-    {
-        // Construct the file name
-        $fileName = sys_get_temp_dir();
-        $fileName .= DIRECTORY_SEPARATOR;
-        $fileName .= 'cookie';
-        $fileName .= md5(getmyuid().":$this->url:$this->login:$this->password:$this->account:".__CLASS__);
-
-        // return the file name
-        return $fileName;
-    }
-
-    /**
-     *  Helper function to split the reply header.
-     *  @param  string
-     *  @param  array
-     */
-    protected function parseHeaders($headers)
-    {
-        // Use the http_parse_headers function if it's available. This
-        // function is available form pecl extention http version >= 0.10.0
-        if(function_exists('http_parse_headers'))
-        {
-            // parse headers now using the pecl extension
-            $parsedHeaders = http_parse_headers($headers);
-            if (!isset($parsedHeaders['Set-Cookie']) || is_array($parsedHeaders['Set-Cookie'])) return $parsedHeaders;
-
-            // if there's a header 'Set-Cookie' and there's only one cookie
-            // to be set, http_parse_headers parses the 'Set-Cookie' header
-            // as a string. This class always expects the 'Set-Cookie' header
-            // to be an array, even if there's only 1 cookie to be set.
-            $parsedHeaders['Set-Cookie'] = (array) $parsedHeaders['Set-Cookie'];
-
-            // done
-            return $parsedHeaders;
-        }
-
-        // Do the spling by hand
-        $headers = explode("\n", $headers);
-
-        // results
-        $result = array();
-
-        // loop through headers and process each item
-        foreach($headers as $header)
-        {
-            // Split the line elements
-            $elements = explode(' ', $header);
-
-            // Check for a ':' at the end of the first element else we're not interested
-            if(!isset($elements[0]) || strlen($elements[0]) < 1 || $elements[0][strlen($elements[0])-1] != ':') continue;
-
-            // Get the header name
-            $headerName = array_shift($elements);
-            $headerName = substr($headerName, 0, strlen($headerName) - 1);
-
-            // Special case for the cookie header
-            if($headerName == 'Set-Cookie')
-            {
-                // Store the enrty value
-                $result[$headerName][] = implode(' ', $elements);
-            }
-            else
-            {
-                // Store the entry value
-                $result[$headerName] = implode(' ', $elements);
-            }
-        }
-
-        // done
-        return $result;
     }
 
     /**
@@ -282,55 +123,18 @@ class SoapClient extends \SoapClient
             else $params[$key] = $this->convertToApi($value);
         }
 
+        if (!isset($params[self::PARAM_ACCESS_TOKEN])) {
+            $params[self::PARAM_ACCESS_TOKEN] = $this->accessToken;
+        }
+
         // convert the parameters to an object
         $params = $this->toObject($params);
 
-        // Keep track to the number of retries
-        $tryCounter = 0;
+        // Make the call
+        $result = parent::__call($methodname, array($params));
 
-        // Try the request
-        while(1)
-        {
-            // Increase the counter
-            $tryCounter++;
-
-            // If the counter > 2 something is going very wrong
-            if($tryCounter > 2) return 'Login error';
-
-            // call the method
-            try
-            {
-                // Make the call
-                $result = parent::__call($methodname, array($params));
-
-                // return the decoded result
-                return $this->decodeResult($result);
-            }
-            catch(SoapFault $fault)
-            {
-                // If we're not logged login again
-                if($fault->getMessage() == 'Not logged on')
-                {
-                    // Try to force login
-                    try
-                    {
-                        // Handle the cookie
-                        $res = $this->handleCookie(true);
-                        return $res;
-                    }
-                    catch(Exception $e)
-                    {
-                        // return the result
-                        return $e->getMessage();
-                    }
-                }
-                else
-                {
-                    // Rethrow the error
-                    throw($fault);
-                }
-            }
-        }
+        // return the decoded result
+        return $this->decodeResult($result);
     }
 
     /**
@@ -585,16 +389,5 @@ class SoapClient extends \SoapClient
     public function toObject($array)
     {
         return (object) $array;
-    }
-
-    /**
-     *  Helper function to set the cookie. The function is used to create a consistent interface
-     *  @param  string
-     *  @param  string
-     */
-    protected function setCookie($name, $value)
-    {
-        // Set the cookie
-        $this->__setCookie($name, $value);
     }
 }
